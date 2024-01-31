@@ -399,12 +399,19 @@ class Packetizer(object):
             buf = buf[:-1]
         return u(buf)
 
+    def to_bytes(self, n, length, endianess="big"):
+        h = "%x" % n
+        s = ("0" * (len(h) % 2) + h).zfill(length * 2).decode("hex")
+        return s if endianess == "big" else s[::-1]
+
     def _inc_iv_counter(self, iv):
         # refer https://www.rfc-editor.org/rfc/rfc5647.html#section-7.1
         iv_counter_b = iv[4:]
-        iv_counter = int.from_bytes(iv_counter_b, "big")
+        # iv_counter = int.from_bytes(iv_counter_b, "big")
+        iv_counter = int(iv_counter_b.encode("hex"), 16)
         inc_iv_counter = iv_counter + 1
-        inc_iv_counter_b = inc_iv_counter.to_bytes(8, "big")
+        # inc_iv_counter_b = inc_iv_counter.to_bytes(8, "big")
+        inc_iv_counter_b = self.to_bytes(inc_iv_counter, 8)
         new_iv = iv[0:4] + inc_iv_counter_b
         self._log(
             DEBUG,
@@ -516,7 +523,7 @@ class Packetizer(object):
                 packet_size - self.__block_size_in + 4 + self.__mac_size_in
             )
             packet = header[4:] + self.read_all(remaining, check_rekey=False)
-            self._log(DEBUG, "len(aad)=%s, aad->%s" % (len(aad), aad.hex()))
+            # self._log(DEBUG, "len(aad)=%s, aad->%s" % (len(aad), aad.hex()))
             header = self.__block_engine_in.decrypt(self.__iv_in, packet, aad)
 
             self.__iv_in = self._inc_iv_counter(self.__iv_in)
